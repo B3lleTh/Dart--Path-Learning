@@ -1,43 +1,84 @@
+import 'dart:io';
+
 void main() {
-  int a = 22;
-  int b = 5;
-  int c = 11;
+  print('--- HomeWork Mobile Development | Nested If Version ---');
 
-  print('Numbers: $a, $b, $c');
+  stdout.write('number 1: ');
+  int a = int.parse(stdin.readLineSync()!);
+  stdout.write('number 2: ');
+  int b = int.parse(stdin.readLineSync()!);
+  stdout.write('number 3: ');
+  int c = int.parse(stdin.readLineSync()!);
+  stdout.write('number 4: ');
+  int d = int.parse(stdin.readLineSync()!);
 
-  //Bigger One
-  int more = a; //Think of a as the Bigger One
+  int first, second, third, forth;
 
-  if (b > more) {
-    more = b; // if 'b' wins, b its the new Champion
-  } else if (c > more) {
-    more = c; // if 'c' wins, c is the New Champion
+  // Lógica con IF ANIDADO (Pura fuerza bruta para el profe)
+  if (a >= b && a >= c && a >= d) {
+    first = a;
+    // Ahora buscamos el segundo entre b, c, d
+    if (b >= c && b >= d) {
+      second = b;
+      if (c >= d) { third = c; forth = d; } else { third = d; forth = c; }
+    } else if (c >= b && c >= d) {
+      second = c;
+      if (b >= d) { third = b; forth = d; } else { third = d; forth = b; }
+    } else {
+      second = d;
+      if (b >= c) { third = b; forth = c; } else { third = c; forth = b; }
+    }
+  } else if (b >= a && b >= c && b >= d) {
+    first = b;
+    // Buscamos el segundo entre a, c, d
+    if (a >= c && a >= d) {
+      second = a;
+      if (c >= d) { third = c; forth = d; } else { third = d; forth = c; }
+    } else if (c >= a && c >= d) {
+      second = c;
+      if (a >= d) { third = a; forth = d; } else { third = d; forth = a; }
+    } else {
+      second = d;
+      if (a >= c) { third = a; forth = c; } else { third = c; forth = a; }
+    }
+  } else if (c >= a && c >= b && c >= d) {
+    first = c;
+    // Buscamos el segundo entre a, b, d
+    if (a >= b && a >= d) {
+      second = a;
+      if (b >= d) { third = b; forth = d; } else { third = d; forth = b; }
+    } else if (b >= a && b >= d) {
+      second = b;
+      if (a >= d) { third = a; forth = d; } else { third = d; forth = a; }
+    } else {
+      second = d;
+      if (a >= b) { third = a; forth = b; } else { third = b; forth = a; }
+    }
+  } else {
+    first = d;
+    // Buscamos el segundo entre a, b, c
+    if (a >= b && a >= c) {
+      second = a;
+      if (b >= c) { third = b; forth = c; } else { third = c; forth = b; }
+    } else if (b >= a && b >= c) {
+      second = b;
+      if (a >= c) { third = a; forth = c; } else { third = c; forth = a; }
+    } else {
+      second = c;
+      if (a >= b) { third = a; forth = b; } else { third = b; forth = a; }
+    }
   }
 
-  // Small One
-  int less = a; //all is the same as the other one just for a small one, duh =/
-
-  if (b < less) {
-    less = b;
-  } else if (c < less) {
-    less = c;
-  }
-
-  //Middle
-  int middle = a;
-
-  if (b > less && b < more) {
-    middle = b;
-  } else if (c > less && c < more) {
-    middle = c;
-  }
-
-  if (more != less || less != middle ) { 
-    // Result
-    print('The Biggest Number is: $more');
-    print('The Smallest Number is: $less');
-    print("The One that's left is:  $middle The middle one, duh =/ (I wanna go to sleep, I'm tired #HELP) ",);
-  }else{
-    print('All are Equal, u Dumb?');
+  // Validación e Impresión
+  if (a == b && b == c && c == d) {
+    print('\nTodos son iguales... u Dumb?');
+  } else {
+    print('\n--- RESULTADOS (JERARQUÍA) ---');
+    print('1º Biggest One: $first');
+    print('2º The Fisrt Loser: $second');
+    print('3º Reached Podium: $third');
+    print('4º Little One: $forth');
+    print('------------------------------');
+    print('#DormirEsParaDebiles #DartLearning');
   }
 }
