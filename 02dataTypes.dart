@@ -94,27 +94,4 @@ print(ironman['nombre']);
 print(warMachine['nombre']);
 
 
-
-//variables
-
-var store = 10;
-
-final double age = 10;
-
-const double constant = 10;
-
-store = 20;
-
-age =  20;
-
-constant =  20;
-
-print(store);
-print(age);
-print(constant);
-
-//declarar Listas 
-final List<String>
-
-
 }

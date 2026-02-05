@@ -14,9 +14,10 @@ void main() {
 
   int first, second, third, forth;
 
-  // Lógica con IF ANIDADO (Pura fuerza bruta para el profe)
+  // IF ANIDADO 
   if (a >= b && a >= c && a >= d) {
     first = a;
+
     // Ahora buscamos el segundo entre b, c, d
     if (b >= c && b >= d) {
       second = b;
@@ -48,6 +49,8 @@ void main() {
     }
   } else if (b >= a && b >= c && b >= d) {
     first = b;
+
+
     // Buscamos el segundo entre a, c, d
     if (a >= c && a >= d) {
       second = a;
@@ -79,6 +82,8 @@ void main() {
     }
   } else if (c >= a && c >= b && c >= d) {
     first = c;
+
+
     // Buscamos el segundo entre a, b, d
     if (a >= b && a >= d) {
       second = a;
@@ -110,6 +115,7 @@ void main() {
     }
   } else {
     first = d;
+    
     // Buscamos el segundo entre a, b, c
     if (a >= b && a >= c) {
       second = a;
