@@ -1,4 +1,4 @@
-# 🟦 Mastering Dart: My Learning Path
+# 🟦 Dart: My Learning Path
 
 ![Dart Logo](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)
 
