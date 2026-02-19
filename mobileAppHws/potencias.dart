@@ -5,7 +5,6 @@ int expo(int bases, exponent){
   if(exponent <= 0){
     return 1;
   }
-
   return bases * expo(bases,exponent - 1);
 
 }
