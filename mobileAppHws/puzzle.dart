@@ -1,103 +1,107 @@
 import 'dart:io';
 import 'dart:async';
 
-// Visuals 
-const String PARED = '█';    // Obstacle
-const String LIBRE = ' ';    // Available Space
-const String JUGADOR = '●';  // The "Snake"
-const String RASTRO = '·';   // Breadcrumbs (Backtracking)
-const String META = '@';    // Goal (F10)
+const String JUGADOR = ' ● ';
+const String RASTRO = ' · ';
+const String META = ' @ ';
+const String VACIO = '   ';
 
-void main() async {
-  // 0: Empty Space, 1: Wall, 3: Goal
-  List<List<int>> laberinto = [
-    [1, 1, 1, 0, 1, 0, 1, 0, 1, 3], // Row A
-    [0, 0, 0, 0, 1, 0, 1, 0, 0, 1], // Row B
-    [0, 1, 0, 1, 0, 0, 0, 0, 1, 1], // Row C
-    [0, 1, 0, 0, 0, 1, 0, 0, 0, 1], // Row D
-    [1, 0, 0, 1, 0, 0, 1, 0, 0, 3], // Row E
-    [1, 0, 1, 1, 1, 1, 0, 1, 0, 1], // Row F  = Goal in F10
-  ];
-
-  print('=========== Begining Puzzle ============');
-  await Future.delayed(Duration(seconds: 1));
-
-  // Iniciamos la búsqueda desde A1 (índices 0,0)
-  bool encontrado = await resolver(1, 0, laberinto);
-
-  if (encontrado) {
-    print('\nFinish You Did it !!! encontró la salida en F10.');
-  } else {
-    print('\nERROR: No hay un camino posible hacia la salida.');
-  }
+class Celda {
+  bool n, s, e, o;
+  int estado; // 0: libre, 2: rastro, 3: meta, 9: jugador
+  Celda({this.n = false, this.s = false, this.e = false, this.o = false, this.estado = 0});
 }
 
-/// Recursivity Backtracking Func
-Future<bool> resolver(int f, int c, List<List<int>> mapa) async {
-  // 1. Validar si estamos fuera de los límites (A-F, 1-10)
+void main() async {
+  // Derecha (Este): 2
+  // Arriba (Norte): 1
+  // Abajo (Sur): 4
+  //Izquierda (Oeste): 8
+
+  List<List<int>> configuracion = [
+    [2, 0, 0, 0, 0, 0, 0, 0, 0, 3], // Fila A
+    [1, 5, 5, 5, 5, 5, 5, 5, 5, 1], // Fila B
+    [2, 5, 2, 0, 0, 0, 3, 5, 5, 1], // Fila C
+    [1, 5, 1, 5, 5, 5, 1, 5, 5, 1], // Fila D
+    [1, 5, 1, 5, 5, 5, 1, 5, 5, 1], // Fila E
+    [0, 0, 4, 0, 0, 0, 4, 0, 0, 9], // Fila F (El 9 es la META)
+  ];
+
+  List<List<Celda>> laberinto = convertirMapa(configuracion);
+
+  print('=========== Laberinto Cargado ============');
+  await Future.delayed(Duration(seconds: 1));
+
+  // Iniciamos en A1 (0,0)
+  await resolver(0, 0, laberinto);
+}
+
+// Esta función traduce tus números simples a paredes reales
+List<List<Celda>> convertirMapa(List<List<int>> config) {
+  return List.generate(6, (f) {
+    return List.generate(10, (c) {
+      int tipo = config[f][c];
+      Celda celda = Celda();
+      
+      if (tipo == 0) { celda.e = true; celda.o = true; } // Horizontal
+      if (tipo == 1) { celda.n = true; celda.s = true; } // Vertical
+      if (tipo == 2) { celda.s = true; celda.e = true; } // Esquina L (abajo-der)
+      if (tipo == 3) { celda.s = true; celda.o = true; } // Esquina J (abajo-izq)
+      if (tipo == 4) { celda.n = true; celda.s = true; celda.e = true; celda.o = true; } // Cruce
+      if (tipo == 9) { celda.estado = 3; celda.n = true; celda.o = true; } // Meta
+      
+      return celda;
+    });
+  });
+}
+
+// Lógica de resolución (Universal)
+Future<bool> resolver(int f, int c, List<List<Celda>> mapa) async {
   if (f < 0 || f >= 6 || c < 0 || c >= 10) return false;
+  Celda actual = mapa[f][c];
 
-  // Is this the goal? (Value 3)
-  if (mapa[f][c] == 3) {
-    dibujar(mapa); // Mostrar estado final
-    return true;
-  }
+  if (actual.estado == 3) { dibujar(mapa); return true; }
+  if (actual.estado != 0) return false;
 
-  // 3. ¿Es una pared (1) o ya lo visitamos (2)?
-  if (mapa[f][c] != 0) return false;
-
-  // 4. MARCAR PASO ACTUAL
-  mapa[f][c] = 9; // 9 es el código temporal para el "Jugador"
+  actual.estado = 9; 
   dibujar(mapa);
-  // Speed Control
-  await Future.delayed(Duration(milliseconds: 200)); 
-  
-  mapa[f][c] = 2; // Marcamos como visitado definitivamente
+  await Future.delayed(Duration(milliseconds: 200));
+  actual.estado = 2;
 
-  // 5. Explore 4 Directions 
-  // Intentamos: Derecha, Abajo, Izquierda, Arriba
-  if (await resolver(f, c + 1, mapa)) return true; // Derecha
-  if (await resolver(f + 1, c, mapa)) return true; // Abajo
-  if (await resolver(f, c - 1, mapa)) return true; // Izquierda
-  if (await resolver(f - 1, c, mapa)) return true; // Arriba
+  // El algoritmo revisa si hay puerta abierta antes de moverse
+  if (actual.e && await resolver(f, c + 1, mapa)) return true; // Derecha
+  if (actual.s && await resolver(f + 1, c, mapa)) return true; // Abajo
+  if (actual.o && await resolver(f, c - 1, mapa)) return true; // Izquierda
+  if (actual.n && await resolver(f - 1, c, mapa)) return true; // Arriba
 
-  // 6. BACKTRACKING (Si ninguna dirección funcionó)
-  // Opcional: podrías poner mapa[f][c] = 0 si quieres que "borre" sus errores
   return false;
 }
 
-/// Función que dibuja el mapa con coordenadas A-F y 1-10
-void dibujar(List<List<int>> mapa) {
-  // Código especial para limpiar la consola y regresar el cursor arriba
+void dibujar(List<List<Celda>> mapa) {
   stdout.write('\x1B[2J\x1B[0;0H');
-
-  // Imprimir encabezado de números (1-10)
   stdout.write('    ');
-  for (int i = 1; i <= 10; i++) {
-    stdout.write('$i '.padRight(3));
-  }
-  print('\n' + '   ' + '---' * 10);
+  for (int i = 1; i <= 10; i++) stdout.write(' $i '.padRight(4));
+  print('\n    ' + '----' * 10);
 
-  // Imprimir filas con letras (A-F)
   for (int f = 0; f < mapa.length; f++) {
-    String letra = String.fromCharCode(65 + f); // 65 es 'A'
-    stdout.write('$letra |');
+    stdout.write('    ');
+    for (int c = 0; c < mapa[f].length; c++) 
+      stdout.write(mapa[f][c].n ? '+   ' : '+---');
+    print('+');
 
+    String letra = String.fromCharCode(65 + f);
+    stdout.write('$letra   ');
     for (int c = 0; c < mapa[f].length; c++) {
-      int celda = mapa[f][c];
-      String simbolo;
-
-      switch (celda) {
-        case 1: simbolo = PARED; break;
-        case 2: simbolo = RASTRO; break;
-        case 3: simbolo = META; break;
-        case 9: simbolo = JUGADOR; break;
-        default: simbolo = LIBRE;
-      }
-      stdout.write(' $simbolo ');
+      Celda celda = mapa[f][c];
+      stdout.write(celda.o ? ' ' : '|');
+      if (celda.estado == 9) stdout.write(JUGADOR);
+      else if (celda.estado == 2) stdout.write(RASTRO);
+      else if (celda.estado == 3) stdout.write(META);
+      else stdout.write(VACIO);
     }
     print('|');
   }
-  print('   ' + '---' * 10);
-  print('Explorando coordenadas... (● = Buscador, · = Camino analizado)');
+  stdout.write('    ');
+  for (int c = 0; c < 10; c++) stdout.write('+---');
+  print('+');
 }
