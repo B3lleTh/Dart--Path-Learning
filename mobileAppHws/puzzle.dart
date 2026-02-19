@@ -6,24 +6,24 @@ const String PARED = '█';    // Obstacle
 const String LIBRE = ' ';    // Available Space
 const String JUGADOR = '●';  // The "Snake"
 const String RASTRO = '·';   // Breadcrumbs (Backtracking)
-const String META = '@';    // Goals (F10)
+const String META = '@';    // Goal (F10)
 
 void main() async {
   // 0: Empty Space, 1: Wall, 3: Goal
   List<List<int>> laberinto = [
-    [1, 1, 1, 0, 0, 0, 0, 0, 1, 0], // Fila A
-    [0, 0, 0, 0, 1, 0, 1, 0, 0, 1], // Fila B
-    [0, 1, 0, 1, 0, 0, 0, 0, 1, 1], // Fila C
-    [0, 1, 0, 0, 0, 1, 0, 0, 0, 1], // Fila D
-    [1, 0, 0, 1, 0, 0, 1, 0, 0, 0], // Fila E
-    [1, 0, 1, 1, 1, 1, 0, 1, 0, 1], // Fila F  = Goal in F10
+    [1, 1, 1, 0, 1, 0, 1, 0, 1, 3], // Row A
+    [0, 0, 0, 0, 1, 0, 1, 0, 0, 1], // Row B
+    [0, 1, 0, 1, 0, 0, 0, 0, 1, 1], // Row C
+    [0, 1, 0, 0, 0, 1, 0, 0, 0, 1], // Row D
+    [1, 0, 0, 1, 0, 0, 1, 0, 0, 3], // Row E
+    [1, 0, 1, 1, 1, 1, 0, 1, 0, 1], // Row F  = Goal in F10
   ];
 
   print('=========== Begining Puzzle ============');
   await Future.delayed(Duration(seconds: 1));
 
   // Iniciamos la búsqueda desde A1 (índices 0,0)
-  bool encontrado = await resolver(0, 0, laberinto);
+  bool encontrado = await resolver(1, 0, laberinto);
 
   if (encontrado) {
     print('\nFinish You Did it !!! encontró la salida en F10.');
@@ -37,7 +37,7 @@ Future<bool> resolver(int f, int c, List<List<int>> mapa) async {
   // 1. Validar si estamos fuera de los límites (A-F, 1-10)
   if (f < 0 || f >= 6 || c < 0 || c >= 10) return false;
 
-  // 2. ¿Es la meta? (Valor 3)
+  // Is this the goal? (Value 3)
   if (mapa[f][c] == 3) {
     dibujar(mapa); // Mostrar estado final
     return true;
@@ -49,12 +49,12 @@ Future<bool> resolver(int f, int c, List<List<int>> mapa) async {
   // 4. MARCAR PASO ACTUAL
   mapa[f][c] = 9; // 9 es el código temporal para el "Jugador"
   dibujar(mapa);
-  // Control de velocidad: 200ms por paso
+  // Speed Control
   await Future.delayed(Duration(milliseconds: 200)); 
   
   mapa[f][c] = 2; // Marcamos como visitado definitivamente
 
-  // 5. EXPLORACIÓN EN LAS 4 DIRECCIONES
+  // 5. Explore 4 Directions 
   // Intentamos: Derecha, Abajo, Izquierda, Arriba
   if (await resolver(f, c + 1, mapa)) return true; // Derecha
   if (await resolver(f + 1, c, mapa)) return true; // Abajo
