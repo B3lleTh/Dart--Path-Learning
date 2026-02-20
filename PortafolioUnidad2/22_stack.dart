@@ -1,6 +1,5 @@
 //desarrolla un programa en dart que use listas de tipo numerico (enteros), esta lista debe ser tratado como una stack, y crear sus funciones push y pop, la lista debe ser de 5 elementos
 
-
 void main() {
   Stack pila = Stack();
 
@@ -12,8 +11,8 @@ void main() {
 
   pila.push(60); // Intento de overflow
 
-  print("Elemento eliminado: ${pila.pop()}");
-  print("Elemento eliminado: ${pila.pop()}");
+  print("Deleted Element: ${pila.pop()}");
+  print("Deleted Element: ${pila.pop()}");
 
   pila.mostrar();
 }
@@ -26,9 +25,9 @@ class Stack {
   void push(int valor) {
     if (_lista.length < maxSize) {
       _lista.add(valor);
-      print("Push: $valor agregado");
+      print("Push: $valor added");
     } else {
-      print("Error: Stack llena (Overflow)");
+      print("Error: Stack Overflow");
     }
   }
 
@@ -38,13 +37,13 @@ class Stack {
       int valor = _lista.removeLast();
       return valor;
     } else {
-      print("Error: Stack vacía (Underflow)");
+      print("Error: Stack Underflow");
       return null;
     }
   }
 
   // Mostrar contenido de la pila
   void mostrar() {
-    print("Contenido actual de la pila: $_lista");
+    print("Actual Content of the Stack: $_lista");
   }
 }
