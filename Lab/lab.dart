@@ -135,11 +135,8 @@ class Maze {
 
     // ── ROW E ──────────────────────────────────────────────
     open(4, 0, 'right');
-    open(4, 1, 'right');
-    
-    
+    open(4, 1, 'right');  
     open(4, 4, 'right');
-
     open(4, 6, 'right');
     open(4, 7, 'right');
 
