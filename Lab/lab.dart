@@ -1,430 +1,258 @@
-// ===========================================================
-//  LABERINTO 12x12 EN DART
-//  Backtracking DFS con visualización paso a paso en consola
-// ===========================================================
-
 import 'dart:io';
 
-// ────────────────────────────────────────────────────────────
-//  CLASE: Celda
-//  Cada casilla del laberinto tiene 4 paredes individuales.
-//  true  = pared cerrada (no se puede pasar)
-//  false = pared abierta (hay pasillo)
-// ────────────────────────────────────────────────────────────
-class Celda {
-  bool arriba = true;
-  bool abajo = true;
-  bool izquierda = true;
-  bool derecha = true;
-  bool visitada = false; // El backtracking ya pasó por aquí
+//  Rows:    A–F  (indexes 0–5, vertical)
+//  Columns: 1–10 (indexes 0–9, horizontal)
+
+class Cell {
+  bool top = true;
+  bool bottom = true;
+  bool left = true;
+  bool right = true;
+  bool visited = false;
 }
 
-// ────────────────────────────────────────────────────────────
-//  CLASE: Laberinto
-// ────────────────────────────────────────────────────────────
-class Laberinto {
-  final int filas;
-  final int columnas;
-  late List<List<Celda>> grid;
+class Maze {
+  static const int ROWS = 6;
+  static const int COLUMNS = 10;
+  static const List<String> LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
+  static const List<String> NUMBERS = [
+    '1',
+    '2',
+    '3',
+    '4',
+    '5',
+    '6',
+    '7',
+    '8',
+    '9',
+    '10',
+  ];
 
-  // Posiciones fijas de inicio y salida
-  final int inicioF, inicioC;
-  final int salidaF, salidaC;
+  final grid = List.generate(
+    ROWS,
+    (_) => List.generate(COLUMNS, (_) => Cell()),
+  );
 
-  // Camino que el algoritmo está recorriendo ahora mismo
-  // Si hace backtrack, las celdas se eliminan de aquí
-  List<List<int>> camino = [];
+  // Start: F2  →  row F=5, col 2=1
+  // Exit:  A9  →  row A=0, col 9=8
+  final int startRow = 5, startCol = 1;
+  final int exitRow = 0, exitCol = 8;
 
-  // Celdas que ya fueron exploradas y no llevan a la salida
-  Set<String> descartadas = {};
-
-  int paso = 0; // Contador de pasos para mostrar en pantalla
-
-  Laberinto({
-    required this.filas,
-    required this.columnas,
-    required this.inicioF,
-    required this.inicioC,
-    required this.salidaF,
-    required this.salidaC,
-  }) {
-    grid = List.generate(filas, (_) => List.generate(columnas, (_) => Celda()));
-  }
+  List<List<int>> path = [];
+  Set<String> discarded = {};
+  int step = 0;
 
   // ──────────────────────────────────────────────────────────
-  //  MÉTODO: abrir
+  //  open(r, c, dir)
+  //  Opens the wall between (r,c) and its neighbor. Both sides.
   //
-  //  Abre un pasillo entre dos celdas vecinas.
-  //  Siempre actúa en AMBOS lados del muro para mantener
-  //  consistencia: si A puede ir a B, entonces B puede ir a A.
-  //
-  //  Uso:   abrir(fila, columna, 'derecha')
-  //         abrir(fila, columna, 'abajo')
-  //         abrir(fila, columna, 'arriba')
-  //         abrir(fila, columna, 'izquierda')
-  //
-  //  ┌───┬───┐        ┌───┬───┐
-  //  │ A │ B │  →     │ A   B │   abrir(A, 'derecha')
-  //  └───┴───┘        └───────┘
+  //  row 0=A  1=B  2=C  3=D  4=E  5=F
+  //  col 0=1  1=2  2=3  3=4  4=5  5=6  6=7  7=8  8=9  9=10
   // ──────────────────────────────────────────────────────────
-  void abrir(int f, int c, String dir) {
-    // Ignorar si la celda está fuera del mapa
-    if (f < 0 || f >= filas || c < 0 || c >= columnas) return;
+  void open(int r, int c, String dir) {
+    if (r < 0 || r >= ROWS || c < 0 || c >= COLUMNS) return;
 
-    if (dir == 'arriba' && f > 0) {
-      grid[f][c].arriba = false; // Quita pared arriba de (f,c)
-      grid[f - 1][c].abajo = false; // Quita pared abajo  de (f-1,c)
-    } else if (dir == 'abajo' && f < filas - 1) {
-      grid[f][c].abajo = false; // Quita pared abajo  de (f,c)
-      grid[f + 1][c].arriba = false; // Quita pared arriba de (f+1,c)
-    } else if (dir == 'izquierda' && c > 0) {
-      grid[f][c].izquierda = false; // Quita pared izq    de (f,c)
-      grid[f][c - 1].derecha = false; // Quita pared derecha de (f,c-1)
-    } else if (dir == 'derecha' && c < columnas - 1) {
-      grid[f][c].derecha = false; // Quita pared derecha de (f,c)
-      grid[f][c + 1].izquierda = false; // Quita pared izq    de (f,c+1)
+    if (dir == 'top' && r > 0) {
+      grid[r][c].top = false;
+      grid[r - 1][c].bottom = false;
+    } else if (dir == 'bottom' && r < ROWS - 1) {
+      grid[r][c].bottom = false;
+      grid[r + 1][c].top = false;
+    } else if (dir == 'left' && c > 0) {
+      grid[r][c].left = false;
+      grid[r][c - 1].right = false;
+    } else if (dir == 'right' && c < COLUMNS - 1) {
+      grid[r][c].right = false;
+      grid[r][c + 1].left = false;
     }
   }
 
   // ──────────────────────────────────────────────────────────
-  //  MÉTODO: mapa
-  //
-  //  Aquí se define el laberinto abriendo pasillos.
-  //  Cada línea = un pasillo entre dos casillas vecinas.
-  //
-  //  Para modificar el laberinto:
-  //    - Agregar línea  → nuevo pasillo aparece
-  //    - Borrar línea   → ese pasillo desaparece (muro cerrado)
-  //    - Cambiar dir    → cambia hacia dónde conecta
-  //
-  //  Coordenadas: abrir(fila, columna, dirección)
-  //  Fila 0 = arriba,  Fila 11 = abajo
-  //  Col 0  = izquierda, Col 11 = derecha
+  //  map()
+  //  Corridors read from the board.
   // ──────────────────────────────────────────────────────────
-  void mapa() {
-    // ┌─ FILA 0 ──────────────────────────────────────────────
-    abrir(0, 0, 'derecha');
-    abrir(0, 1, 'derecha');
-    abrir(0, 2, 'abajo');
-    abrir(0, 3, 'derecha');
-    abrir(0, 4, 'derecha');
-    abrir(0, 5, 'derecha');
-    abrir(0, 6, 'abajo');
-    abrir(0, 7, 'derecha');
-    abrir(0, 8, 'abajo');
-    abrir(0, 9, 'derecha');
-    abrir(0, 10, 'derecha');
+  void map() {
+    // Entrance at F2 (left outer wall open)
+    grid[startRow][startCol].left = false;
 
-    // ┌─ FILA 1 ──────────────────────────────────────────────
-    abrir(1, 0, 'abajo');
-    abrir(1, 1, 'derecha');
-    abrir(1, 2, 'derecha');
-    abrir(1, 3, 'abajo');
-    abrir(1, 4, 'abajo');
-    abrir(1, 5, 'abajo');
-    abrir(1, 6, 'derecha');
-    abrir(1, 7, 'abajo');
-    abrir(1, 8, 'derecha');
-    abrir(1, 9, 'abajo');
-    abrir(1, 10, 'abajo');
-    abrir(1, 11, 'abajo');
+    // Exit at A9 (right outer wall open)
+    grid[exitRow][exitCol].right = false;
 
-    // ┌─ FILA 2 ──────────────────────────────────────────────
-    abrir(2, 0, 'derecha');
-    abrir(2, 1, 'abajo');
-    abrir(2, 2, 'abajo');
-    abrir(2, 3, 'derecha');
-    abrir(2, 4, 'derecha');
-    abrir(2, 5, 'derecha');
-    abrir(2, 6, 'abajo');
-    abrir(2, 7, 'derecha');
-    abrir(2, 8, 'derecha');
-    abrir(2, 9, 'derecha');
-    abrir(2, 10, 'abajo');
+    // ── ROW A ──────────────────────────────────────────────
+    open(0, 0, 'right');
+    open(0, 1, 'right');
+    open(0, 4, 'right');
+    open(0, 5, 'right');
+    open(0, 7, 'right');
+    open(0, 8, 'right');
 
-    // ┌─ FILA 3 ──────────────────────────────────────────────
-    abrir(3, 0, 'abajo');
-    abrir(3, 1, 'derecha');
-    abrir(3, 2, 'derecha');
-    abrir(3, 3, 'abajo');
-    abrir(3, 4, 'derecha');
-    abrir(3, 5, 'abajo');
-    abrir(3, 6, 'derecha');
-    abrir(3, 7, 'abajo');
-    abrir(3, 8, 'abajo');
-    abrir(3, 9, 'derecha');
-    abrir(3, 10, 'derecha');
-    abrir(3, 11, 'abajo');
+    open(0, 0, 'bottom');
+    open(0, 3, 'bottom');
+    open(0, 6, 'bottom');
+    open(0, 9, 'bottom');
 
-    // ┌─ FILA 4 ──────────────────────────────────────────────
-    abrir(4, 0, 'derecha');
-    abrir(4, 1, 'abajo');
-    abrir(4, 2, 'abajo');
-    abrir(4, 3, 'derecha');
-    abrir(4, 4, 'abajo');
-    abrir(4, 5, 'derecha');
-    abrir(4, 6, 'derecha');
-    abrir(4, 7, 'derecha');
-    abrir(4, 8, 'derecha');
-    abrir(4, 9, 'abajo');
-    abrir(4, 10, 'abajo');
+    // ── ROW B ──────────────────────────────────────────────
+    open(1, 1, 'right');
+    open(1, 2, 'right');
+    open(1, 4, 'right');
+    open(1, 5, 'right');
+    open(1, 7, 'right');
+    open(1, 8, 'right');
 
-    // ┌─ FILA 5 ──────────────────────────────────────────────
-    abrir(5, 0, 'abajo');
-    abrir(5, 1, 'derecha');
-    abrir(5, 2, 'derecha');
-    abrir(5, 3, 'abajo');
-    abrir(5, 4, 'derecha');
-    abrir(5, 5, 'abajo');
-    abrir(5, 6, 'abajo');
-    abrir(5, 7, 'abajo');
-    abrir(5, 9, 'derecha');
-    abrir(5, 10, 'derecha');
-    abrir(5, 11, 'abajo');
+    open(1, 0, 'bottom');
+    open(1, 2, 'bottom');
+    open(1, 4, 'bottom');
+    open(1, 6, 'bottom');
+    open(1, 8, 'bottom');
 
-    // ┌─ FILA 6 ──────────────────────────────────────────────
-    abrir(6, 0, 'derecha');
-    abrir(6, 1, 'abajo');
-    abrir(6, 2, 'abajo');
-    abrir(6, 3, 'derecha');
-    abrir(6, 4, 'derecha');
-    abrir(6, 5, 'derecha');
-    abrir(6, 6, 'derecha');
-    abrir(6, 7, 'derecha');
-    abrir(6, 8, 'abajo');
-    abrir(6, 9, 'abajo');
-    abrir(6, 10, 'derecha');
-    abrir(6, 11, 'abajo');
+    // ── ROW C ──────────────────────────────────────────────
+    open(2, 0, 'right');
+    open(2, 1, 'right');
+    open(2, 3, 'right');
+    open(2, 5, 'right');
+    open(2, 6, 'right');
+    open(2, 8, 'right');
 
-    // ┌─ FILA 7 ──────────────────────────────────────────────
-    abrir(7, 0, 'abajo');
-    abrir(7, 1, 'derecha');
-    abrir(7, 2, 'derecha');
-    abrir(7, 3, 'abajo');
-    abrir(7, 4, 'abajo');
-    abrir(7, 5, 'derecha');
-    abrir(7, 6, 'abajo');
-    abrir(7, 7, 'abajo');
-    abrir(7, 8, 'derecha');
-    abrir(7, 9, 'derecha');
-    abrir(7, 10, 'abajo');
+    open(2, 1, 'bottom');
+    open(2, 3, 'bottom');
+    open(2, 5, 'bottom');
+    open(2, 7, 'bottom');
+    open(2, 9, 'bottom');
 
-    // ┌─ FILA 8 ──────────────────────────────────────────────
-    abrir(8, 0, 'derecha');
-    abrir(8, 1, 'abajo');
-    abrir(8, 2, 'abajo');
-    abrir(8, 3, 'derecha');
-    abrir(8, 4, 'derecha');
-    abrir(8, 5, 'abajo');
-    abrir(8, 6, 'derecha');
-    abrir(8, 7, 'derecha');
-    abrir(8, 8, 'abajo');
-    abrir(8, 9, 'abajo');
-    abrir(8, 10, 'derecha');
-    abrir(8, 11, 'abajo');
+    // ── ROW D ──────────────────────────────────────────────
+    open(3, 0, 'right');
+    open(3, 2, 'right');
+    open(3, 3, 'right');
+    open(3, 5, 'right');
+    open(3, 7, 'right');
+    open(3, 8, 'right');
 
-    // ┌─ FILA 9 ──────────────────────────────────────────────
-    abrir(9, 0, 'abajo');
-    abrir(9, 1, 'derecha');
-    abrir(9, 2, 'derecha');
-    abrir(9, 3, 'abajo');
-    abrir(9, 4, 'abajo');
-    abrir(9, 5, 'derecha');
-    abrir(9, 6, 'derecha');
-    abrir(9, 7, 'abajo');
-    abrir(9, 8, 'derecha');
-    abrir(9, 9, 'derecha');
-    abrir(9, 10, 'abajo');
+    open(3, 0, 'bottom');
+    open(3, 2, 'bottom');
+    open(3, 4, 'bottom');
+    open(3, 6, 'bottom');
+    open(3, 8, 'bottom');
 
-    // ┌─ FILA 10 ─────────────────────────────────────────────
-    abrir(10, 0, 'derecha');
-    abrir(10, 1, 'abajo');
-    abrir(10, 2, 'abajo');
-    abrir(10, 3, 'derecha');
-    abrir(10, 4, 'derecha');
-    abrir(10, 5, 'abajo');
-    abrir(10, 6, 'abajo');
-    abrir(10, 7, 'derecha');
-    abrir(10, 8, 'abajo');
-    abrir(10, 9, 'derecha');
-    abrir(10, 10, 'derecha');
-    abrir(10, 11, 'abajo');
+    // ── ROW E ──────────────────────────────────────────────
+    open(4, 0, 'right');
+    open(4, 1, 'right');
+    
+    
+    open(4, 4, 'right');
 
-    // ┌─ FILA 11 ─────────────────────────────────────────────
-    abrir(11, 0, 'derecha');
-    abrir(11, 1, 'derecha');
-    abrir(11, 2, 'derecha');
-    abrir(11, 3, 'derecha');
-    abrir(11, 4, 'derecha');
-    abrir(11, 5, 'derecha');
-    abrir(11, 6, 'derecha');
-    abrir(11, 7, 'derecha');
-    abrir(11, 8, 'derecha');
-    abrir(11, 9, 'derecha');
-    abrir(11, 10, 'derecha');
-    // (11,11) es la salida — no se abre ninguna pared extra
+    open(4, 6, 'right');
+    open(4, 7, 'right');
+
+    open(4, 1, 'bottom');
+    open(4, 3, 'bottom');
+    open(4, 5, 'bottom');
+    open(4, 7, 'bottom');
+
+    // ── ROW F ──────────────────────────────────────────────
+    open(5, 0, 'right');
+    open(5, 2, 'right');
+    open(5, 3, 'right');
+    open(5, 5, 'right');
+    open(5, 6, 'right');
+    open(5, 8, 'right');
   }
 
-  // ──────────────────────────────────────────────────────────
-  //  MÉTODO: pasillo
-  //  ¿Existe un pasillo abierto desde (f,c) en esa dirección?
-  //  Se verifica que la celda destino exista Y la pared esté abierta.
-  // ──────────────────────────────────────────────────────────
-  bool pasillo(int f, int c, String dir) {
-    if (dir == 'arriba') return f > 0 && !grid[f][c].arriba;
-    if (dir == 'abajo') return f < filas - 1 && !grid[f][c].abajo;
-    if (dir == 'izquierda') return c > 0 && !grid[f][c].izquierda;
-    if (dir == 'derecha') return c < columnas - 1 && !grid[f][c].derecha;
+  bool corridor(int r, int c, String dir) {
+    if (dir == 'top') return r > 0 && !grid[r][c].top;
+    if (dir == 'bottom') return r < ROWS - 1 && !grid[r][c].bottom;
+    if (dir == 'left') return c > 0 && !grid[r][c].left;
+    if (dir == 'right') return c < COLUMNS - 1 && !grid[r][c].right;
     return false;
   }
 
-  // ──────────────────────────────────────────────────────────
-  //  MÉTODO: dibujar
-  //
-  //  Limpia la pantalla y dibuja el estado actual.
-  //
-  //  Iconos:
-  //    ▶  inicio (jugador)
-  //    ◎  salida
-  //    ◆  posición actual del algoritmo
-  //    ·  camino activo (puede retroceder)
-  //    ░  callejón descartado
-  //       celda sin explorar
-  // ──────────────────────────────────────────────────────────
-  void dibujar(String estado) {
-    stdout.write('\x1B[2J\x1B[0;0H'); // Limpia pantalla (ANSI)
+  void draw() {
+    stdout.write('\x1B[2J\x1B[0;0H');
 
-    // Set para búsqueda rápida de celdas en el camino activo
-    final enCamino = {for (final p in camino) '${p[0]},${p[1]}'};
-    final actual = camino.isNotEmpty
-        ? '${camino.last[0]},${camino.last[1]}'
-        : '';
+    final inPath = {for (final p in path) '${p[0]},${p[1]}'};
+    final current = path.isNotEmpty ? '${path.last[0]},${path.last[1]}' : '';
 
-    // ── Encabezado ──
-    print(' LABERINTO 12×12          paso $paso');
-    print(' ▶ inicio  ◎ salida  ◆ explorando  · camino  ░ callejón');
-    print('');
+    String header = '     ';
+    for (final n in NUMBERS) header += ' ${n.padLeft(2)} ';
+    print(header);
 
-    for (int f = 0; f < filas; f++) {
-      // Línea de paredes superiores
-      String top = '';
-      for (int c = 0; c < columnas; c++) {
-        top += '┼';
-        top += grid[f][c].arriba ? '───' : '   ';
+    for (int r = 0; r < ROWS; r++) {
+      String topLine = '     ';
+      for (int c = 0; c < COLUMNS; c++) {
+        topLine += '+';
+        topLine += grid[r][c].top ? '---' : '   ';
       }
-      print('$top┼');
+      print('$topLine+');
 
-      // Línea de celdas
-      String mid = '';
-      for (int c = 0; c < columnas; c++) {
-        mid += grid[f][c].izquierda ? '│' : ' ';
-
-        final k = '$f,$c';
-        if (f == inicioF && c == inicioC)
-          mid += ' ▶ ';
-        else if (f == salidaF && c == salidaC)
-          mid += ' ◎ ';
-        else if (k == actual)
-          mid += ' ◆ ';
-        else if (enCamino.contains(k))
-          mid += ' · ';
-        else if (descartadas.contains(k))
-          mid += ' ░ ';
+      String mid = ' ${LETTERS[r]}   ';
+      for (int c = 0; c < COLUMNS; c++) {
+        mid += grid[r][c].left ? '|' : ' ';
+        final k = '$r,$c';
+        if (k == current)
+          mid += ' @ ';
+        else if (r == exitRow && c == exitCol)
+          mid += ' X ';
+        else if (inPath.contains(k))
+          mid += ' * ';
+        else if (discarded.contains(k))
+          mid += ' . ';
         else
           mid += '   ';
       }
-      mid += grid[f][columnas - 1].derecha ? '│' : ' ';
+      mid += grid[r][COLUMNS - 1].right ? '|' : ' ';
       print(mid);
     }
 
-    // Línea inferior final
-    String bot = '';
-    for (int c = 0; c < columnas; c++) {
-      bot += '┼';
-      bot += grid[filas - 1][c].abajo ? '───' : '   ';
+    String bottomLine = '     ';
+    for (int c = 0; c < COLUMNS; c++) {
+      bottomLine += '+';
+      bottomLine += grid[ROWS - 1][c].bottom ? '---' : '   ';
     }
-    print('$bot┼');
-
-    // Pie: estado actual del algoritmo
+    print('$bottomLine+');
     print('');
-    print(' $estado');
+    print(' @=player  X=exit  *=path  .=discarded    step $step');
   }
 
-  // ──────────────────────────────────────────────────────────
-  //  MÉTODO: resolver  —  Backtracking DFS
-  //
-  //  En cada llamada:
-  //   1. ¿Llegamos a la salida?    → éxito, para todo
-  //   2. ¿Celda ya visitada?       → evita bucles, regresa false
-  //   3. Marca visitada, entra al camino, DIBUJA
-  //   4. Prueba las 4 direcciones recursivamente
-  //   5. Si todas fallan (callejón) → BACKTRACK:
-  //      saca del camino, marca como descartada, DIBUJA
-  // ──────────────────────────────────────────────────────────
-  bool resolver(int f, int c) {
-    // Caso base: llegamos
-    if (f == salidaF && c == salidaC) {
-      camino.add([f, c]);
-      paso++;
-      dibujar('¡Salida encontrada!  camino: ${camino.length} pasos');
+  bool solve(int r, int c) {
+    if (r == exitRow && c == exitCol) {
+      path.add([r, c]);
+      draw();
+      print(' final path: ${path.length} cells');
       return true;
     }
 
-    if (grid[f][c].visitada) return false;
+    if (grid[r][c].visited) return false;
 
-    // Avanza: marca, añade al camino, dibuja, pausa
-    grid[f][c].visitada = true;
-    camino.add([f, c]);
-    paso++;
-    dibujar('Explorando  ($f, $c)');
-    sleep(const Duration(milliseconds: 180));
+    grid[r][c].visited = true;
+    path.add([r, c]);
+    step++;
+    draw();
+    sleep(const Duration(milliseconds: 200));
 
-    // Prueba las 4 direcciones
     for (final d in [
-      ['arriba', f - 1, c],
-      ['abajo', f + 1, c],
-      ['izquierda', f, c - 1],
-      ['derecha', f, c + 1],
+      ['top', r - 1, c],
+      ['bottom', r + 1, c],
+      ['left', r, c - 1],
+      ['right', r, c + 1],
     ]) {
-      if (pasillo(f, c, d[0] as String)) {
-        if (resolver(d[1] as int, d[2] as int)) return true;
+      if (corridor(r, c, d[0] as String)) {
+        if (solve(d[1] as int, d[2] as int)) return true;
       }
     }
 
-    // Backtrack: no había salida por aquí
-    camino.removeLast();
-    descartadas.add('$f,$c');
-    paso++;
-    dibujar('Retrocede   ($f, $c)  — callejón');
+    path.removeLast();
+    discarded.add('$r,$c');
+    step++;
+    draw();
     sleep(const Duration(milliseconds: 120));
 
     return false;
   }
 }
 
-// ────────────────────────────────────────────────────────────
-//  MAIN
-// ────────────────────────────────────────────────────────────
 void main() {
-  final lab = Laberinto(
-    filas: 12,
-    columnas: 12,
-    inicioF: 0,
-    inicioC: 0, // ▶ esquina superior-izquierda
-    salidaF: 11,
-    salidaC: 11, // ◎ esquina inferior-derecha
-  );
-
-  lab.mapa(); // Construye el laberinto
-  lab.dibujar('Listo. Iniciando backtracking...');
-  sleep(const Duration(seconds: 1));
-
-  final ok = lab.resolver(lab.inicioF, lab.inicioC);
-
-  if (!ok) {
-    lab.dibujar('Sin solución — no existe camino a la salida.');
-  }
-
-  print('\n Pasos totales (avances + retrocesos): ${lab.paso}');
-  print(' Longitud del camino final: ${lab.camino.length} celdas');
+  final maze = Maze();
+  maze.map();
+  maze.draw();
+  sleep(const Duration(milliseconds: 800));
+  maze.solve(maze.startRow, maze.startCol);
 }
