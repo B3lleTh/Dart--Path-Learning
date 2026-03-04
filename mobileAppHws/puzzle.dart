@@ -1,107 +1,113 @@
 import 'dart:io';
 import 'dart:async';
 
-const String JUGADOR = ' ● ';
-const String RASTRO = ' · ';
-const String META = ' @ ';
-const String VACIO = '   ';
-
-class Celda {
-  bool n, s, e, o;
-  int estado; // 0: libre, 2: rastro, 3: meta, 9: jugador
-  Celda({this.n = false, this.s = false, this.e = false, this.o = false, this.estado = 0});
-}
+// Codificación de paredes: Norte=1, Este=2, Sur=4, Oeste=8
 
 void main() async {
-  // Derecha (Este): 2
-  // Arriba (Norte): 1
-  // Abajo (Sur): 4
-  //Izquierda (Oeste): 8
-
-  List<List<int>> configuracion = [
-    [2, 0, 0, 0, 0, 0, 0, 0, 0, 3], // Fila A
-    [1, 5, 5, 5, 5, 5, 5, 5, 5, 1], // Fila B
-    [2, 5, 2, 0, 0, 0, 3, 5, 5, 1], // Fila C
-    [1, 5, 1, 5, 5, 5, 1, 5, 5, 1], // Fila D
-    [1, 5, 1, 5, 5, 5, 1, 5, 5, 1], // Fila E
-    [0, 0, 4, 0, 0, 0, 4, 0, 0, 9], // Fila F (El 9 es la META)
+  // Laberinto 7x7 con paredes codificadas
+  List<List<int>> laberinto = [
+    [3, 2, 2, 2, 2, 2, 6],
+    [9, 0, 2, 0, 2, 0, 4],
+    [9, 0, 0, 0, 2, 0, 4],
+    [9, 2, 2, 0, 2, 0, 4],
+    [9, 0, 0, 0, 0, 0, 4],
+    [9, 0, 2, 0, 2, 0, 4],
+    [12, 8, 8, 8, 8, 8, 12],
   ];
 
-  List<List<Celda>> laberinto = convertirMapa(configuracion);
+  int filas = laberinto.length;
+  int columnas = laberinto[0].length;
 
-  print('=========== Laberinto Cargado ============');
-  await Future.delayed(Duration(seconds: 1));
+  List<List<int>> recorrido = List.generate(filas, (_) => List.filled(columnas, 0));
 
-  // Iniciamos en A1 (0,0)
-  await resolver(0, 0, laberinto);
+  // Limpiar pantalla
+  clearConsole();
+
+  // Resolver laberinto animado
+  bool exito = await resolverLaberintoAnimado(0, 0, laberinto, recorrido);
+
+  // Mostrar resultado final
+  imprimirLaberintoVisual(laberinto, recorrido);
+  print("\nResultado: ${exito ? "¡Salida encontrada!" : "No hay salida"}");
 }
 
-// Esta función traduce tus números simples a paredes reales
-List<List<Celda>> convertirMapa(List<List<int>> config) {
-  return List.generate(6, (f) {
-    return List.generate(10, (c) {
-      int tipo = config[f][c];
-      Celda celda = Celda();
-      
-      if (tipo == 0) { celda.e = true; celda.o = true; } // Horizontal
-      if (tipo == 1) { celda.n = true; celda.s = true; } // Vertical
-      if (tipo == 2) { celda.s = true; celda.e = true; } // Esquina L (abajo-der)
-      if (tipo == 3) { celda.s = true; celda.o = true; } // Esquina J (abajo-izq)
-      if (tipo == 4) { celda.n = true; celda.s = true; celda.e = true; celda.o = true; } // Cruce
-      if (tipo == 9) { celda.estado = 3; celda.n = true; celda.o = true; } // Meta
-      
-      return celda;
-    });
-  });
+// Función para limpiar consola
+void clearConsole() {
+  if (Platform.isWindows) {
+    stdout.write('\x1B[2J\x1B[0;0H');
+  } else {
+    stdout.write('\x1B[2J\x1B[H');
+  }
 }
 
-// Lógica de resolución (Universal)
-Future<bool> resolver(int f, int c, List<List<Celda>> mapa) async {
-  if (f < 0 || f >= 6 || c < 0 || c >= 10) return false;
-  Celda actual = mapa[f][c];
+// Determinar salida
+bool esSalida(int x, int y) => x == 6 && y == 6;
 
-  if (actual.estado == 3) { dibujar(mapa); return true; }
-  if (actual.estado != 0) return false;
+// DFS animado con backtracking
+Future<bool> resolverLaberintoAnimado(int x, int y, List<List<int>> laberinto, List<List<int>> recorrido) async {
+  int filas = laberinto.length;
+  int columnas = laberinto[0].length;
 
-  actual.estado = 9; 
-  dibujar(mapa);
+  if (x < 0 || y < 0 || x >= filas || y >= columnas) return false;
+  if (recorrido[x][y] == 1) return false;
+
+  recorrido[x][y] = 1;
+
+  // Mostrar laberinto
+  clearConsole();
+  imprimirLaberintoVisual(laberinto, recorrido);
   await Future.delayed(Duration(milliseconds: 200));
-  actual.estado = 2;
 
-  // El algoritmo revisa si hay puerta abierta antes de moverse
-  if (actual.e && await resolver(f, c + 1, mapa)) return true; // Derecha
-  if (actual.s && await resolver(f + 1, c, mapa)) return true; // Abajo
-  if (actual.o && await resolver(f, c - 1, mapa)) return true; // Izquierda
-  if (actual.n && await resolver(f - 1, c, mapa)) return true; // Arriba
+  if (esSalida(x, y)) return true;
+
+  // Mover Norte
+  if ((laberinto[x][y] & 1) == 0 && await resolverLaberintoAnimado(x - 1, y, laberinto, recorrido)) return true;
+  // Mover Este
+  if ((laberinto[x][y] & 2) == 0 && await resolverLaberintoAnimado(x, y + 1, laberinto, recorrido)) return true;
+  // Mover Sur
+  if ((laberinto[x][y] & 4) == 0 && await resolverLaberintoAnimado(x + 1, y, laberinto, recorrido)) return true;
+  // Mover Oeste
+  if ((laberinto[x][y] & 8) == 0 && await resolverLaberintoAnimado(x, y - 1, laberinto, recorrido)) return true;
+
+  // Backtracking
+  recorrido[x][y] = 0;
+
+  clearConsole();
+  imprimirLaberintoVisual(laberinto, recorrido);
+  await Future.delayed(Duration(milliseconds: 200));
 
   return false;
 }
 
-void dibujar(List<List<Celda>> mapa) {
-  stdout.write('\x1B[2J\x1B[0;0H');
-  stdout.write('    ');
-  for (int i = 1; i <= 10; i++) stdout.write(' $i '.padRight(4));
-  print('\n    ' + '----' * 10);
+// Función para imprimir laberinto con caracteres bonitos
+void imprimirLaberintoVisual(List<List<int>> laberinto, List<List<int>> recorrido) {
+  int filas = laberinto.length;
+  int columnas = laberinto[0].length;
 
-  for (int f = 0; f < mapa.length; f++) {
-    stdout.write('    ');
-    for (int c = 0; c < mapa[f].length; c++) 
-      stdout.write(mapa[f][c].n ? '+   ' : '+---');
-    print('+');
-
-    String letra = String.fromCharCode(65 + f);
-    stdout.write('$letra   ');
-    for (int c = 0; c < mapa[f].length; c++) {
-      Celda celda = mapa[f][c];
-      stdout.write(celda.o ? ' ' : '|');
-      if (celda.estado == 9) stdout.write(JUGADOR);
-      else if (celda.estado == 2) stdout.write(RASTRO);
-      else if (celda.estado == 3) stdout.write(META);
-      else stdout.write(VACIO);
+  for (int i = 0; i < filas; i++) {
+    // Pared superior
+    for (int j = 0; j < columnas; j++) {
+      stdout.write((laberinto[i][j] & 1) != 0 ? "┌───┐" : "     ");
     }
-    print('|');
+    print("");
+
+    // Cuerpo de la celda
+    for (int j = 0; j < columnas; j++) {
+      String izquierda = (laberinto[i][j] & 8) != 0 ? "│" : " ";
+      String derecha = (laberinto[i][j] & 2) != 0 ? "│" : " ";
+      String contenido;
+      if (i == 0 && j == 0) {
+        contenido = " S ";
+      } else if (i == filas - 1 && j == columnas - 1) {
+        contenido = " E ";
+      } else if (recorrido[i][j] == 1) {
+        contenido = " * ";
+      } else {
+        contenido = " · ";
+      }
+      stdout.write("$izquierda$contenido$derecha");
+    }
+    print("");
   }
-  stdout.write('    ');
-  for (int c = 0; c < 10; c++) stdout.write('+---');
-  print('+');
+  print(""); // espacio al final
 }
