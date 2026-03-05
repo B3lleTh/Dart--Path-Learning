@@ -2,62 +2,40 @@
 class Employee {
   String name;
   int id;
-  double salary;
 
-  Employee(this.name, this.id, this.salary);
-
-  void showInfo() {
-    print("Employee: $name | ID: $id | Salary: $salary");
-  }
+  Employee(this.name, this.id);
 }
 
-// Subclass of Employee
+// Manager class
 class Manager extends Employee {
-  int teamSize;
+  int employeesInCharge;
 
-  Manager(String name, int id, double salary, this.teamSize)
-      : super(name, id, salary);
+  Manager(String name, int id, this.employeesInCharge) : super(name, id);
 
-  void manageTeam() {
-    print("$name manages a team of $teamSize employees.");
+  void showRole() {
+    print("Manager: $name (Praise the Sun!)");
+    print("Has $employeesInCharge employee in charge");
   }
 }
 
-// Subclass of Manager
-class AreaManager extends Manager {
-  String area;
-  int fleetNumber;
-
-  AreaManager(String name, int id, double salary, int teamSize, this.area, this.fleetNumber)
-      : super(name, id, salary, teamSize);
-
-  void showArea() {
-    print("$name is responsible for the $area area with $fleetNumber vehicles.");
-  }
-}
-
-// Another subclass of Employee
+// Cashier class
 class Cashier extends Employee {
   int registerNumber;
 
-  Cashier(String name, int id, double salary, this.registerNumber)
-      : super(name, id, salary);
+  Cashier(String name, int id, this.registerNumber) : super(name, id);
 
-  void processPayment() {
-    print("$name is processing payments at register $registerNumber.");
+  void showRole() {
+    print("Cashier: $name");
+    print("Works at register $registerNumber.");
   }
 }
 
 void main() {
-  AreaManager manager = AreaManager("Ranni la Bruja", 1, 20000, 8, "Sales", 4);
-  Cashier cashier = Cashier("Solaire de Astora", 2, 8000, 3);
+  Manager manager = Manager("Solaire of Astora", 1, 1);
+  Cashier cashier = Cashier("Siegmeyer of Catarina", 2, 6);
 
-  manager.showInfo();
-  manager.manageTeam();
-  manager.showArea();
+  manager.showRole();
+  print(""); // space
 
-  print("");
-
-  cashier.showInfo();
-  cashier.processPayment();
+  cashier.showRole();
 }
