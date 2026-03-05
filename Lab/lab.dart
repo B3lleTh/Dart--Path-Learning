@@ -10,7 +10,7 @@ class Cell {
   bool right = true;
   bool visited = false;
 }
-
+//XD
 class Maze {
   static const int ROWS = 6;
   static const int COLUMNS = 10;
